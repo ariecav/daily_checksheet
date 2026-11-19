@@ -1,0 +1,47 @@
+{
+  "test_id": "qa_eval_001",
+  "test_title": "Daily Checksheet QA Evaluation",
+  "sections": [
+    {
+      "section_id": "sec_qa_1",
+      "section_name": "Quality Assurance Fundamentals",
+      "questions": [
+        {
+          "id": "qa_q1",
+          "question_text": "What is the first action when a defect is found during a daily checksheet inspection?",
+          "options": ["A) Ignore and continue", "B) Record it and report to supervisor immediately", "C) Erase the record", "D) Wait until end of month"],
+          "correct_answer": "B",
+          "points": 10
+        },
+        {
+          "id": "qa_q2",
+          "question_text": "Which document must be filled completely before signing off a daily checksheet?",
+          "options": ["A) Only the date", "B) Only the name", "C) All required fields with accurate data", "D) Nothing, it is optional"],
+          "correct_answer": "C",
+          "points": 10
+        },
+        {
+          "id": "qa_q3",
+          "question_text": "What does 5S stand for in workplace organization?",
+          "options": ["A) Sort, Set in order, Shine, Standardize, Sustain", "B) Speed, Skill, Safety, Sweep, Save", "C) Sort, Sell, Shine, Skip, Sustain", "D) Study, Select, Scan, Set, Stop"],
+          "correct_answer": "A",
+          "points": 10
+        },
+        {
+          "id": "qa_q4",
+          "question_text": "If a machine parameter is out of the standard range on the checksheet, what should you do?",
+          "options": ["A) Change the recorded value", "B) Leave it until tomorrow", "C) Stop, tag the machine, and report to maintenance", "D) Adjust the standard instead"],
+          "correct_answer": "C",
+          "points": 10
+        },
+        {
+          "id": "qa_q5",
+          "question_text": "Why is a daily checksheet important for quality assurance?",
+          "options": ["A) It is just a formality", "B) To detect abnormalities early and keep consistent quality", "C) To replace all other documents", "D) To increase paperwork"],
+          "correct_answer": "B",
+          "points": 10
+        }
+      ]
+    }
+  ]
+}

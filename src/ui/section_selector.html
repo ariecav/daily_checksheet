@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Section Selector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 10px;
+        }
+
+        .section-selector {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            border-radius: 12px;
+            padding: 15px 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 20px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            flex-wrap: nowrap;
+        }
+
+        .selector-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            padding: 0 10px;
+            min-width: fit-content;
+            flex-shrink: 0;
+        }
+
+        .tab-container {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 10px;
+            flex-wrap: nowrap;
+            min-width: 0;
+        }
+
+        .tab {
+            flex: 1;
+            min-width: 0;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            background-color: #f0f0f0;
+            color: #555;
+            flex-shrink: 1;
+            min-width: 80px;
+        }
+
+        .tab:hover {
+            background-color: #e0e0e0;
+        }
+
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+        }
+
+        .position-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            padding: 15px;
+            text-align: center;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .section-selector {
+                padding: 12px 8px;
+            }
+            
+            .tab {
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+            
+            .selector-label {
+                font-size: 14px;
+            }
+            
+            .position-name {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .section-selector {
+                padding: 10px 5px;
+            }
+            
+            .tab {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+            
+            .selector-label {
+                font-size: 13px;
+            }
+            
+            .position-name {
+                font-size: 13px;
+                padding: 12px;
+            }
+        }
+
+        /* Scrollbar styling for webkit browsers */
+        .tab-container::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .tab-container::-webkit-scrollbar-thumb {
+            background-color: #cccccc;
+            border-radius: 2px;
+        }
+
+        .tab-container::-webkit-scrollbar-track {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="position-name">Nama Posisi: Staff Administrasi</div>
+        
+        <div class="section-selector">
+            <div class="selector-label">Section Dept:</div>
+            <div class="tab-container">
+                <div class="tab active" data-tab="tab1">Tab 1: General Information</div>
+                <div class="tab" data-tab="tab2">Tab 2: Performance Metrics</div>
+                <div class="tab" data-tab="tab3">Tab 3: Competency Assessment</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.tab');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+                    
+                    // Here you could add logic to show/hide content based on tab selection
+                    console.log('Selected tab:', tab.getAttribute('data-tab'));
+                });
+            });
+            
+            // Handle touch swipe for mobile
+            let startX = 0;
+            const container = document.querySelector('.tab-container');
+            
+            container.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+            }, { passive: true });
+            
+            container.addEventListener('touchend', (e) => {
+                const endX = e.changedTouches[0].clientX;
+                const diff = startX - endX;
+                
+                // If swipe is significant enough (> 50px), scroll
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0) {
+                        // Swipe left
+                        container.scrollBy({ left: 100, behavior: 'smooth' });
+                    } else {
+                        // Swipe right
+                        container.scrollBy({ left: -100, behavior: 'smooth' });
+                    }
+                }
+            }, { passive: true });
+        });
+    </script>
+</body>
+</html>

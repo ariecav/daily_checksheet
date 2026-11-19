@@ -1,0 +1,48 @@
+{
+  "test_id": "IK001",
+  "test_title": "Sample Evaluation Test IK001",
+  "level": 1,
+  "sections": [
+    {
+      "section_id": "sec_1",
+      "section_name": "General Knowledge",
+      "questions": [
+        {
+          "id": "q1",
+          "question_text": "What is the capital of France?",
+          "options": ["Paris", "London", "Rome", "Berlin"],
+          "correct_answer": "Paris",
+          "points": 10
+        },
+        {
+          "id": "q2",
+          "question_text": "Which planet is known as the Red Planet?",
+          "options": ["Earth", "Mars", "Jupiter", "Venus"],
+          "correct_answer": "Mars",
+          "points": 10
+        },
+        {
+          "id": "q3",
+          "question_text": "What is the boiling point of water at sea level in Celsius?",
+          "options": ["90", "100", "110", "120"],
+          "correct_answer": "100",
+          "points": 10
+        },
+        {
+          "id": "q4",
+          "question_text": "Who wrote 'Romeo and Juliet'?",
+          "options": ["William Shakespeare", "Leo Tolstoy", "Charles Dickens", "Mark Twain"],
+          "correct_answer": "William Shakespeare",
+          "points": 10
+        },
+        {
+          "id": "q5",
+          "question_text": "Which element has the chemical symbol 'O'?",
+          "options": ["Gold", "Oxygen", "Silver", "Iron"],
+          "correct_answer": "Oxygen",
+          "points": 10
+        }
+      ]
+    }
+  ]
+}
