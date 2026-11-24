@@ -91,7 +91,7 @@ pub const BODY: &str = r#"
                 <h2 id="take-test-heading"></h2>
                 <div class="form-group" id="evaluation-form-group">
                     <label for="select-evaluation-form">Select Evaluation Form:</label>
-                    <select id="select-evaluation-form" onchange="onEvaluationFormChange()">
+                    <select id="select-evaluation-form" onchange="onEvaluationFormChange()" disabled>
                         <option value="">-- Select Evaluation Form --</option>
                     </select>
                 </div>

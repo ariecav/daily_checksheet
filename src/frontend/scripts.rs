@@ -188,7 +188,18 @@ pub const SCRIPTS: &str = r#"
 
         function onTakerNameChange() {
             const name = document.getElementById('taker-name').value;
+            setEvaluationFormAccess(!!name);
             applyTabAccess(participantRoles[name] || '');
+        }
+
+        function setEvaluationFormAccess(hasSelectedName) {
+            const evaluationForm = document.getElementById('select-evaluation-form');
+            if (!evaluationForm) return;
+            evaluationForm.disabled = !hasSelectedName;
+            if (!hasSelectedName) {
+                evaluationForm.value = '';
+                resetTakeTestControls();
+            }
         }
 
         async function showTokenModal() {
@@ -237,6 +248,7 @@ pub const SCRIPTS: &str = r#"
             const select = document.getElementById('taker-name');
             select.innerHTML = '<option value="">-- Select Name --</option>';
             participantRoles = {};
+            setEvaluationFormAccess(false);
             applyTabAccess('');
             if (!section) return;
             try {
