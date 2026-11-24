@@ -10,7 +10,7 @@ use backend::{
 use std::sync::Arc;
 
 const DATABASE_URL: &str = "sqlite://daily_checksheet.db?mode=rwc";
-const BIND_ADDR: &str = "127.0.0.1:5113";
+const BIND_ADDR: &str = "0.0.0.0:5113";
 
 #[tokio::main]
 async fn main() {

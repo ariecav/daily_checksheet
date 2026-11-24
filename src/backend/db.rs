@@ -59,6 +59,18 @@ impl Database {
                 .await?;
         }
 
+        if !columns.contains("section") {
+            sqlx::query("ALTER TABLE test_results ADD COLUMN section TEXT")
+                .execute(&pool)
+                .await?;
+        }
+
+        if !columns.contains("test_name") {
+            sqlx::query("ALTER TABLE test_results ADD COLUMN test_name TEXT")
+                .execute(&pool)
+                .await?;
+        }
+
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS tests (
@@ -88,6 +100,51 @@ impl Database {
                 .await?;
         }
 
+        sqlx::query(
+            r#"
+            CREATE TABLE IF NOT EXISTS section_participants (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                section TEXT NOT NULL,
+                name TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT '',
+                UNIQUE(section, name)
+            )
+            "#,
+        )
+        .execute(&pool)
+        .await?;
+
+        let participant_columns = sqlx::query("PRAGMA table_info(section_participants)")
+            .fetch_all(&pool)
+            .await?
+            .into_iter()
+            .filter_map(|row| row.try_get::<String, _>("name").ok())
+            .collect::<std::collections::HashSet<_>>();
+
+        if !participant_columns.contains("role") {
+            sqlx::query("ALTER TABLE section_participants ADD COLUMN role TEXT NOT NULL DEFAULT ''")
+                .execute(&pool)
+                .await?;
+        }
+
+        for (section, name, role) in [
+            ("VRT", "Heru", ""),
+            ("VRT", "Iwan", ""),
+            ("HRZ", "Soro", ""),
+            ("HRZ", "Siri", ""),
+            ("VRT", "Wily", "admin"),
+            ("IMP", "Dhani", "admin"),
+        ] {
+            sqlx::query(
+                "INSERT OR IGNORE INTO section_participants (section, name, role) VALUES (?, ?, ?)",
+            )
+            .bind(section)
+            .bind(name)
+            .bind(role)
+            .execute(&pool)
+            .await?;
+        }
+
         Ok(Self { pool })
     }
 
@@ -95,6 +152,36 @@ impl Database {
         let rows = sqlx::query_scalar::<_, String>("SELECT name FROM departments ORDER BY name")
             .fetch_all(&self.pool)
             .await?;
+
+        Ok(rows)
+    }
+
+    pub async fn get_participant_sections(&self) -> Result<Vec<String>, sqlx::Error> {
+        let rows = sqlx::query_scalar::<_, String>(
+            "SELECT DISTINCT section FROM section_participants ORDER BY section",
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(rows)
+    }
+
+    pub async fn get_participants_by_section(
+        &self,
+        section: &str,
+    ) -> Result<Vec<crate::backend::models::Participant>, sqlx::Error> {
+        let rows = sqlx::query(
+            "SELECT name, role FROM section_participants WHERE section = ? ORDER BY name",
+        )
+        .bind(section)
+        .fetch_all(&self.pool)
+        .await?
+        .into_iter()
+        .map(|row| crate::backend::models::Participant {
+            name: row.try_get("name").unwrap_or_default(),
+            role: row.try_get("role").unwrap_or_default(),
+        })
+        .collect();
 
         Ok(rows)
     }
@@ -111,11 +198,13 @@ impl Database {
         fiscal_year: &str,
         mode: Option<&str>,
         level: Option<i32>,
+        section: Option<&str>,
+        test_name: Option<&str>,
     ) -> Result<i64, sqlx::Error> {
         let rec = sqlx::query(
             r#"
-            INSERT INTO test_results (test_id, user_name, total_score, max_score, percentage, evaluated_at, test_date, fiscal_year, mode, level)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO test_results (test_id, user_name, total_score, max_score, percentage, evaluated_at, test_date, fiscal_year, mode, level, section, test_name)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id
             "#,
         )
@@ -129,11 +218,24 @@ impl Database {
         .bind(fiscal_year)
         .bind(mode)
         .bind(level)
+        .bind(section)
+        .bind(test_name)
         .fetch_one(&self.pool)
         .await?;
 
         use sqlx::Row;
         Ok(rec.get("id"))
+    }
+
+    pub async fn get_participant_section(&self, name: &str) -> Result<Option<String>, sqlx::Error> {
+        let section = sqlx::query_scalar::<_, String>(
+            "SELECT section FROM section_participants WHERE name = ? LIMIT 1",
+        )
+        .bind(name)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(section)
     }
 
     pub async fn delete_results(&self, ids: &[i64]) -> Result<(), sqlx::Error> {
@@ -196,7 +298,7 @@ impl Database {
 
     pub async fn get_all_results(&self) -> Result<Vec<TestResult>, sqlx::Error> {
         let rows = sqlx::query_as::<_, TestResultRow>(
-            "SELECT id, test_id, user_name, total_score, max_score, percentage, evaluated_at, test_date, fiscal_year, mode, level FROM test_results ORDER BY id DESC"
+            "SELECT id, test_id, user_name, total_score, max_score, percentage, evaluated_at, test_date, fiscal_year, mode, level, section, test_name FROM test_results ORDER BY id DESC"
         )
         .fetch_all(&self.pool)
         .await?;
@@ -215,6 +317,8 @@ impl Database {
                 fiscal_year: r.fiscal_year.unwrap_or_default(),
                 mode: r.mode,
                 level: r.level,
+                section: r.section,
+                test_name: r.test_name,
             })
             .collect();
 
@@ -235,4 +339,6 @@ struct TestResultRow {
     fiscal_year: Option<String>,
     mode: Option<String>,
     level: Option<i32>,
+    section: Option<String>,
+    test_name: Option<String>,
 }

@@ -1,5 +1,5 @@
 use crate::backend::db::Database;
-use crate::backend::models::{EvaluationTest, TestResult, TestSubmission, TestSummary};
+use crate::backend::models::{EvaluationTest, Participant, TestResult, TestSubmission, TestSummary};
 use chrono::{Datelike, Utc};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -49,10 +49,27 @@ impl EvaluationService {
         }
     }
 
-    pub async fn upload_test(&self, test: EvaluationTest) -> Result<(), String> {
+    pub async fn upload_test(&self, mut test: EvaluationTest) -> Result<String, String> {
         if test.test_id.is_empty() {
             return Err("Test ID cannot be empty".to_string());
         }
+        let requested_id = test.test_id.clone();
+        let assigned_id = {
+            let tests_map = self.tests.read().await;
+            if !tests_map.contains_key(&requested_id) {
+                requested_id.clone()
+            } else {
+                let mut suffix = 2;
+                loop {
+                    let candidate = format!("{requested_id}-{suffix}");
+                    if !tests_map.contains_key(&candidate) {
+                        break candidate;
+                    }
+                    suffix += 1;
+                }
+            }
+        };
+        test.test_id = assigned_id.clone();
         let serialized = serde_json::to_string(&test).map_err(|e| e.to_string())?;
         self.db
             .save_test(&test.test_id, &serialized)
@@ -60,7 +77,7 @@ impl EvaluationService {
             .map_err(|e| format!("Database error: {}", e))?;
         let mut tests_map = self.tests.write().await;
         tests_map.insert(test.test_id.clone(), test);
-        Ok(())
+        Ok(assigned_id)
     }
 
     pub async fn get_test(&self, test_id: &str) -> Option<EvaluationTest> {
@@ -111,6 +128,23 @@ impl EvaluationService {
             .map_err(|e| format!("Database error: {}", e))
     }
 
+    pub async fn get_participant_sections(&self) -> Result<Vec<String>, String> {
+        self.db
+            .get_participant_sections()
+            .await
+            .map_err(|e| format!("Database error: {}", e))
+    }
+
+    pub async fn get_participants_by_section(
+        &self,
+        section: &str,
+    ) -> Result<Vec<Participant>, String> {
+        self.db
+            .get_participants_by_section(section)
+            .await
+            .map_err(|e| format!("Database error: {}", e))
+    }
+
     pub async fn delete_tests(&self, test_ids: Vec<String>) -> Result<(), String> {
         self.db
             .delete_tests(&test_ids)
@@ -142,6 +176,7 @@ impl EvaluationService {
                 test_title: t.test_title.clone(),
                 level: t.level,
                 department: t.department.clone(),
+                test_name: t.test_name.clone(),
             })
             .collect()
     }
@@ -195,6 +230,13 @@ impl EvaluationService {
             (now.year() - 1) % 100
         });
 
+        let section = self
+            .db
+            .get_participant_section(&submission.user_name)
+            .await
+            .unwrap_or(None);
+        let test_name = test.test_name.clone();
+
         let submission_id = self
             .db
             .save_result(
@@ -208,6 +250,8 @@ impl EvaluationService {
                 &fiscal_year,
                 submission.mode.as_deref(),
                 submission.level,
+                section.as_deref(),
+                test_name.as_deref(),
             )
             .await
             .map_err(|e| format!("Database error: {}", e))?;
@@ -224,6 +268,8 @@ impl EvaluationService {
             fiscal_year,
             mode: submission.mode,
             level: submission.level,
+            section,
+            test_name,
         })
     }
 

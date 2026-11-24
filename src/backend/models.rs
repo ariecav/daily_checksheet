@@ -34,6 +34,14 @@ pub struct EvaluationTest {
     pub level: Option<i32>,
     #[serde(default)]
     pub department: Option<String>,
+    #[serde(default)]
+    pub test_name: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Participant {
+    pub name: String,
+    pub role: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -42,6 +50,7 @@ pub struct TestSummary {
     pub test_title: String,
     pub level: Option<i32>,
     pub department: Option<String>,
+    pub test_name: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -72,4 +81,6 @@ pub struct TestResult {
     pub fiscal_year: String,
     pub mode: Option<String>,
     pub level: Option<i32>,
+    pub section: Option<String>,
+    pub test_name: Option<String>,
 }

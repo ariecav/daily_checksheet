@@ -3,12 +3,14 @@ use crate::backend::{
     service::EvaluationService,
 };
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, post, put},
     Json, Router,
 };
+use qrcode::{render::svg, QrCode};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct AppState {
@@ -28,10 +30,58 @@ pub fn create_router(state: Arc<AppState>) -> Router {
             put(update_question_handler),
         )
         .route("/api/departments", get(get_departments_handler))
+        .route("/api/participant-sections", get(get_participant_sections_handler))
+        .route("/api/participants", get(get_participants_handler))
+        .route("/api/access-info", get(get_access_info_handler))
         .route("/api/submit", post(submit_test_handler))
         .route("/api/results", get(get_results_handler).delete(delete_results_handler))
         .route("/api/results/all", delete(delete_all_results_handler))
+        .layer(tower_http::limit::RequestBodyLimitLayer::new(50 * 1024 * 1024)) // 50MB limit
         .with_state(state)
+}
+
+async fn get_access_info_handler() -> impl IntoResponse {
+    const PORT: u16 = 5113;
+
+    let addresses = std::process::Command::new("ifconfig")
+        .output()
+        .ok()
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|output| {
+            output
+                .lines()
+                .filter_map(|line| {
+                    let fields: Vec<&str> = line.split_whitespace().collect();
+                    fields.windows(2).find_map(|pair| {
+                        (pair[0] == "inet").then(|| pair[1].trim_start_matches("addr:").to_owned())
+                    })
+                })
+                .filter(|address| address != "127.0.0.1")
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let access_points = addresses
+        .iter()
+        .map(|address| {
+            let url = format!("http://{address}:{PORT}");
+            let qr_svg = QrCode::new(url.as_bytes()).ok().map(|code| {
+                code.render::<svg::Color>()
+                    .min_dimensions(220, 220)
+                    .build()
+            });
+            serde_json::json!({ "url": url, "qr_svg": qr_svg })
+        })
+        .collect::<Vec<_>>();
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "port": PORT,
+            "addresses": addresses,
+            "access_points": access_points,
+        })),
+    )
 }
 
 async fn get_departments_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -45,14 +95,44 @@ async fn get_departments_handler(State(state): State<Arc<AppState>>) -> impl Int
     }
 }
 
+async fn get_participant_sections_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    match state.service.get_participant_sections().await {
+        Ok(sections) => (StatusCode::OK, Json(sections)).into_response(),
+        Err(error) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": error})),
+        )
+            .into_response(),
+    }
+}
+
+async fn get_participants_handler(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    let section = params.get("section").cloned().unwrap_or_default();
+    match state.service.get_participants_by_section(&section).await {
+        Ok(names) => (StatusCode::OK, Json(names)).into_response(),
+        Err(error) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": error})),
+        )
+            .into_response(),
+    }
+}
+
 async fn upload_test_handler(
     State(state): State<Arc<AppState>>,
     Json(test): Json<EvaluationTest>,
 ) -> impl IntoResponse {
     match state.service.upload_test(test).await {
-        Ok(_) => (
+        Ok(test_id) => (
             StatusCode::OK,
-            Json(serde_json::json!({"status": "success", "message": "Test uploaded successfully"})),
+            Json(serde_json::json!({
+                "status": "success",
+                "message": "Test uploaded successfully",
+                "test_id": test_id,
+            })),
         ),
         Err(e) => (
             StatusCode::BAD_REQUEST,
